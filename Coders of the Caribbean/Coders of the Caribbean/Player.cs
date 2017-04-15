@@ -12,6 +12,7 @@ internal class Player
     public List<Barrels> BarrelsList;
     public List<Ships> ShipList;
     public int NumberOfTurn;
+    public List<Barrels> BarrelsListToGet;
     #endregion
 
     static void Main(string[] args)
@@ -25,7 +26,7 @@ internal class Player
             player.NumberOfTurn++;
             player.ShipList = new List<Ships>();
             player.BarrelsList = new List<Barrels>();
-
+            player.BarrelsListToGet = new List<Barrels>();
             int myShipCount = int.Parse(Console.ReadLine()); // the number of remaining ships
             int entityCount = int.Parse(Console.ReadLine()); // the number of entities (e.g. ships, mines or cannonballs)
             for (int i = 0; i < entityCount; i++)
@@ -71,15 +72,68 @@ internal class Player
 
 
             }
-            for (int i = 0; i < myShipCount; i++)
+            
+            player.BarrelsListToGet.Add(player.FindClosestBarrel(player.BarrelsList));
+            
+            player.SendCommand();
+
+        }
+    }
+    public void SendCommand()
+    {
+
+        //FindClosestBarrel(BarrelsList);
+     
+        if (BarrelsListToGet == null || !BarrelsListToGet.Any())
+        {
+            Console.WriteLine("WAIT");
+        }
+        else
+        {
+            var sb = new StringBuilder();
+
+            foreach(var barrelToget in BarrelsListToGet)
             {
+                sb.AppendFormat("MOVE {0} {1}", barrelToget.PosX, barrelToget.PosY);
+               
+            }
+            
+            Console.WriteLine(sb.ToString());
+        }
+    }
+    public Barrels FindClosestBarrel(List<Barrels> bar) {
+        var myShip = ShipList.Where(x => x.Team == 1);
+        
+       // var cords = BarrelsList.Where(x => x.PosX==myShip[0].PosX).ToList();
+       
+     //   var cords = BarrelsList.OrderBy(x => x.PosX == myShip[0].PosX).ThenBy(y => y.PosY == myShip[0].PosY).ToList();
+        Barrels closestBareler = null;
+        var dist = 1000000.0;
+        foreach (var ship in ShipList)
+        {
+            foreach (var barel in bar)
+            {
+                var x = closestInCartessian(barel, ship);
+                if (closestInCartessian(barel, ship) < dist)
+                {
+                    dist = x;
+                    closestBareler = barel;
+                   // Console.WriteLine("kkk");
+                }
 
-                // Write an action using Console.WriteLine()
-                // To debug: Console.Error.WriteLine("Debug messages...");
-
-                Console.WriteLine("MOVE 11 10"); // Any valid action, such as "WAIT" or "MOVE x y"
+          
             }
         }
+
+        return closestBareler;
+
+    }
+
+
+
+    private double closestInCartessian(Barrels target,Ships source)
+    {
+        return Math.Pow(target.PosX - source.PosX, 2) + Math.Pow(target.PosY - source.PosY, 2);
     }
 }
 
