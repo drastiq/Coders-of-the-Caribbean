@@ -11,6 +11,8 @@ internal class Player
     #region Fields
     public List<Barrel> BarrelsList;
     public List<Ship> ShipList;
+    public Queue<Barrel> BarrelQueue;
+    public Queue<Ship> ShipQueue;
     public int NumberOfTurn;
     public int ShipCount;
     public bool Move;
@@ -18,6 +20,8 @@ internal class Player
     public List<Cannonball> CannonBallList;
     public List<Mine> MineList;
     public List<Entity> TargetList;
+    public Dictionary<Object,Object> PosXYdict;
+    public Queue<Mine> MineQueue;
     #endregion
 
 
@@ -32,8 +36,14 @@ internal class Player
         foreach (var pair in d)
             Console.Error.WriteLine($"[{pair.Key}]:{pair.Value}");
     }
-    #endregion  
-
+    #endregion
+    #region printMethods
+    static void PrintDict(Dictionary<int, int> d)
+    {
+        foreach (var pair in d)
+            Console.WriteLine($"[{pair.Key}]:{pair.Value}");
+    }
+    #endregion
 
 
     static void Main(string[] args)
@@ -55,9 +65,14 @@ internal class Player
             player.MineList = new List<Mine>();
             player.CannonBallList = new List<Cannonball>();
             player.TargetList = new List<Entity>();
+            player.BarrelQueue = new Queue<Barrel>();
+            player.PosXYdict = new Dictionary<Object, Object>(); //dictonary with posXY
+            player.ShipQueue = new Queue<Ship>();//attack queue
+            player.MineQueue = new Queue<Mine>();//mine to destr queueueue
 
             player.ShipCount = int.Parse(Console.ReadLine()); // the number of remaining ships
             int entityCount = int.Parse(Console.ReadLine()); // the number of entities (e.g. ships, mines or cannonballs)
+#region ReadData
             for (int i = 0; i < entityCount; i++)
             {
                 string[] inputs = Console.ReadLine().Split(' ');
@@ -115,163 +130,100 @@ internal class Player
                         PosY = y
                     });
                 }
-
-
             }
-
+            #endregion
+            player.BarrelQueue();
             
-
-        }
-    }
-    /*
-    /*
-    #region OLD
-    /* public void SendCommand()
-     {
-
-
-         //FindClosestBarrel(BarrelsList);
-         //var myShip = ShipList.Where(x => x.Team == 1).ToList();
-         if (BarrelsListToGet == null || !BarrelsListToGet.Any() || Move==true && NumberOfTurn%3==0)
-         {
-             attack();
-             Move = false;
-             //Console.WriteLine("WAIT");
-         }
-         else
-         {
-            // var sb = new StringBuilder();
-
-             if( BarrelsListToGet[0]!=null)
-             {
-                 for(int i = 0; i< ShipCount;i++)
-                 {
-                     //  Console.Error.WriteLine("IN: " + i.ToString());
-                    // Console.WriteLine("WAIT");
-                     // Console.Error.WriteLine("IN: " + i.ToString());
-                    Console.WriteLine("MOVE {0} {1}", BarrelsListToGet.ElementAtOrDefault(i).PosX, BarrelsListToGet.ElementAtOrDefault(i).PosY);
-                    // Console.WriteLine("MOVE {0} {1}", BarrelsListToGet[i].PosX, BarrelsListToGet[i].PosY);
-                    // Console.Error.WriteLine(BarrelsListToGet[2]+"HUJ");
-                   //  Console.Error.WriteLine("DEBUG       MOVE {0} {1}", BarrelsListToGet[i].PosX, BarrelsListToGet[i].PosY);
-
-
-                     //Move = true;
-                 }
-
-             }
-
-            // Console.WriteLine(sb.ToString());
-         }
-         BarrelsListToGet.Clear();
-     }
-     public void BuildBarrelList(List<Barrel> bar,List<Ship> myship) {
-
-
-        // var cords = BarrelsList.Where(x => x.PosX==myShip[0].PosX).ToList();
-
-      //   var cords = BarrelsList.OrderBy(x => x.PosX == myShip[0].PosX).ThenBy(y => y.PosY == myShip[0].PosY).ToList();
-         Barrel closestBareler = null;
-         var dist = 1000000.0;
-
-         foreach ( var myships in myship )
-         {
-             closestBareler = null;
-             foreach (var barel in bar)
-             {
-                 var x = CartessianDist(barel, myships);
-                 if (CartessianDist(barel, myships) < dist)
-                 {
-                     dist = x;
-                     closestBareler = barel;
-                    // Console.WriteLine("kkk");
-                 }
-             }
-             BarrelsListToGet.Add(closestBareler);
-             Console.Error.WriteLine("Barrels list size" + BarrelsListToGet.Count.ToString());
-
-         }
-
-         //return closestBareler;
-
-     }
-    
-    public void BuildTargetList(List<Ship> myship, List<Ship> enemyship)
-    {
-
-
-        // var cords = BarrelsList.Where(x => x.PosX==myShip[0].PosX).ToList();
-
-        //   var cords = BarrelsList.OrderBy(x => x.PosX == myShip[0].PosX).ThenBy(y => y.PosY == myShip[0].PosY).ToList();
-        Ship closestShip = null;
-        var dist = 1000000.0;
-
-        foreach (var myships in myship)
-        {
-            closestShip = null;
-            foreach (var ship in enemyship)
+            foreach (var item in player.ShipList.Where(x => x.Team == 1).ToList().OrderBy(x => x.ID).ToList())
             {
-                var x = CartessianDist(ship, myships);
-                if (CartessianDist(ship, myships) < dist)
+                var debb = player.ShipQueue.ToList();
+                DebList(debb);
+                bool moved = false;
+                Barrel barT = null;
+                Ship shipA = null;
+                Mine MineD = null;
+                if (player.BarrelQueue.Any())
                 {
-                    dist = x;
-                    closestShip = ship;
-                    // Console.WriteLine("kkk");
+                    barT = player.BarrelQueue.Dequeue();
                 }
+                if (player.MineQueue.Any())
+                {
+                    MineD = player.MineQueue.Dequeue();
+                }
+                if (player.ShipQueue.Any())
+                {
+                     shipA = player.ShipQueue.Dequeue();
+                }
+
+
+                if (barT != null)
+                {
+                    if (player.NumberOfTurn % 2 != 0 || shipA == null)
+                    {
+                        Console.WriteLine("MOVE {0} {1}", barT.PosX, barT.PosY);
+                        barT = null;
+                    }
+                   if (shipA != null && player.NumberOfTurn % 2 == 0)
+                    {
+                        if (MineD != null) {
+                            Console.WriteLine("FIRE {0} {1}", MineD.PosX, MineD.PosY);
+                            MineD = null;
+
+                        }
+                        else {
+                            Console.WriteLine("FIRE {0} {1}", shipA.PosX, shipA.PosY);
+                            shipA = null;
+                        }
+                    }
+                }
+                else {
+                    //
+                    // shipA = player.ShipQueue.Peek();
+                    if (shipA != null)
+                    {
+                        Console.WriteLine("FIRE {0} {1}", shipA.PosX, shipA.PosY);
+                    }
+                    else { Console.WriteLine("WAIT"); }
+                
+
+                   // shipA = null;
+                }
+
+
+
             }
-            TargetList.Add(closestShip);
-            Console.Error.WriteLine("Target list sieze" + TargetList.Count.ToString());
+            player.clear();
+
         }
-
-        //return closestShip;
-
     }
-
-
-    public void attack()
-    {
-       var enemyShip = ShipList.Where(x => x.Team == 0).ToList();
-        for (int i = 0; i < ShipCount; i++)
-        {
-            if (TargetList.Any() && TargetList.First() != null && BarrelsListToGet.First() != TargetList.First())
-            {
-
-                Console.WriteLine("FIRE {0} {1}", TargetList.ElementAtOrDefault(i).PosX, TargetList.ElementAtOrDefault(i).PosY);
-                enemyShip.Clear();
-            }
-            else {
-
-                Console.WriteLine("FIRE {0} {1}", enemyShip.First().PosX, enemyShip.First().PosY);
-            }
-        }
-    }
-
-    //unused
-    private double CartessianDist(Entity target,Entity source)
-    {
-        return Math.Pow(target.PosX - source.PosX, 2) + Math.Pow(target.PosY - source.PosY, 2);
-    }
-    //
-#endregion
-*/
     #region botOP
-    public void Strategy()
-    {
-        switch (ShipCount)
-        {
-            case 1:
-            //TODO strategy:
-            case 2:
-            //TODO Strategy:
-            case 3:
-                //todo
 
-            default:
-                break;
+    public void BuildQueueueu() {
+        // BUILD ACTION QUEUE
+        foreach (var myShip in ShipList.Where(x => x.Team == 1).OrderBy(x => x.ID).ToList())
+        {
+            var barelToget = FindClosestBarrel(myShip.PosX, myShip.PosY);
+            var shipToattack = Attack(myShip.PosX, myShip.PosY);
+            var MinetoDestroy = DestroyMine(myShip.PosX, myShip.PosY);
+            BarrelQueue.Enqueue(barelToget);
+            ShipQueue.Enqueue(shipToattack);
+            MineQueue.Enqueue(MinetoDestroy);
+
         }
+    }
+   public void clear() {
+        MineQueue.Clear();
+       ShipQueue.Clear();
+       BarrelQueue.Clear();
+       BarrelsList.Clear();
+        MineList.Clear();
+    ShipList.Clear();
+
+
+
 
     }
-
-    static int HexagonDist(int x1, int y1, int x2, int y2)
+    int HexagonDist(int x1, int y1, int x2, int y2)
     {
         int a1 = x1 - (int)Math.Floor((double)y1 / 2);
         int b1 = y1;
@@ -282,13 +234,52 @@ internal class Player
         return Math.Max(Math.Abs(dx), Math.Max(Math.Abs(dy), Math.Abs(dx + dy)));
     }
 
-    static Barrel FindClosestBarrel(int x, int y)
+
+    Ship Attack(int x, int y) {
+        
+        int minDist = 5;
+        Ship res = null;
+        foreach(var ship in ShipList.Where(v=> v.Team==0).ToList())
+        {
+            int dist = HexagonDist(x, y, ship.PosX, ship.PosY);
+            if (dist < minDist)
+            {
+                res = ship;
+            }
+        }
+        return res;
+
+
+    }
+
+    Mine DestroyMine(int x, int y)
+    {
+
+        int minDist = 2;
+        Mine res = null;
+        foreach (var mine in MineList)
+        {
+            int dist = HexagonDist(x, y, mine.PosX, mine.PosY);
+            if (dist < minDist)
+            {
+                res = mine;
+            }
+        }
+        return res;
+
+
+    }
+
+
+
+
+    Barrel FindClosestBarrel(int x, int y)
     {
         Barrel res = null;
         int minDist = int.MaxValue;
         foreach (var bar in BarrelsList)
         {
-            int dist = HexagonDist(x, y, bar.X, bar.Y);
+            int dist = HexagonDist(x, y, bar.PosX, bar.PosY);
             if (dist < minDist)
             {
                 minDist = dist;
@@ -302,6 +293,13 @@ internal class Player
 #endregion
 
 #region classes
+public class PosXY {
+    public int PosX { get; set; }
+    public int PosY { get; set; }
+
+}
+
+
 public class Entity
 {
     public int ID { get; set; }
